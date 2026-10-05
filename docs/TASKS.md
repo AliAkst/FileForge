@@ -4,7 +4,7 @@ This file contains the complete backlog for FileForge. Tasks are organized by ph
 
 ## Phase 1: Walking Skeleton
 - [x] T-001 [infra] Setup directory structure and configuration (env, settings) | acceptance: directory structure matches CLAUDE.md, .env.example exists, and settings are loadable.
-- [ ] T-002 [domain] Define core domain entities and ports (Job, ConversionResult, Converter) | acceptance: `backend/app/domain/` contains the protocol/interface definitions with NO third-party imports.
+- [x] T-002 [domain] Define core domain entities and ports (Job, ConversionResult, Converter) | acceptance: `backend/app/domain/` contains the protocol/interface definitions with NO third-party imports.
 - [ ] T-003 [infra] Implement Converter registry and auto-discovery | acceptance: A decorator `@register_converter` can be used and the registry can list all discovered converters in a module.
 - [ ] T-004 [infra] Implement DOCX to PDF converter (using LibreOffice/soffice) | acceptance: A functional converter class exists that can convert a sample DOCX to PDF.
 - [ ] T-005 [app] Implement SubmitConversion use case | acceptance: Use case accepts conversion request and returns a Job ID.
