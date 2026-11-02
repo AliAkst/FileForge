@@ -1,0 +1,39 @@
+{
+  "name": "fileforge",
+  "private": true,
+  "version": "1.0.0",
+  "description": "FileForge — local-first file conversion toolkit that runs entirely in your browser.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.1.1",
+    "@fontsource-variable/sora": "^5.1.1",
+    "@pdf-lib/fontkit": "^1.1.1",
+    "docx": "^9.5.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.468.0",
+    "mammoth": "^1.9.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24",
+    "tailwindcss": "^3.3.2",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.0"
+  }
+}
