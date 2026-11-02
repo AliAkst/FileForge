@@ -66,14 +66,58 @@ export function blobFromBytes(bytes: Uint8Array, type: string): Blob {
   return new Blob([copy.buffer], { type })
 }
 
+interface SaveFilePicker {
+  (options?: { suggestedName?: string }): Promise<{
+    createWritable: () => Promise<{
+      write: (data: Blob) => Promise<void>
+      close: () => Promise<void>
+    }>
+  }>
+}
+
+export type SaveResult = 'saved' | 'download' | 'cancelled'
+
+/**
+ * Saves a blob using the File System Access API when the browser supports it,
+ * so the user explicitly picks a destination. Older browsers (and embedded
+ * webviews) fall back to a regular anchor download.
+ */
+export async function saveBlob(blob: Blob, name: string): Promise<SaveResult> {
+  const filename = sanitizeFilename(name)
+  const picker = (window as unknown as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker
+
+  if (typeof picker === 'function') {
+    try {
+      const handle = await picker.call(window, { suggestedName: filename })
+      const writable = await handle.createWritable()
+      await writable.write(blob)
+      await writable.close()
+      return 'saved'
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return 'cancelled'
+      }
+      // Not allowed or not available here: use the standard download path.
+    }
+  }
+
+  downloadBlob(blob, filename)
+  return 'download'
+}
+
 export function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = sanitizeFilename(name)
+  anchor.rel = 'noopener'
+  anchor.style.display = 'none'
   document.body.appendChild(anchor)
   anchor.click()
-  anchor.remove()
+  // Some webviews cancel the download when the anchor is removed in the same
+  // tick, so keep it around briefly. Keep the object URL alive long enough for
+  // large files to start/finish downloading.
+  window.setTimeout(() => anchor.remove(), 1_000)
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 

@@ -22,11 +22,11 @@ import { useI18n } from '../i18n'
 import { isAppError } from '../lib/errors'
 import {
   baseName,
-  downloadBlob,
   extensionOf,
   formatBytes,
   MAX_FILE_SIZE,
   sanitizeFilename,
+  saveBlob,
   zipOutputs,
   type OutputFile,
 } from '../lib/files'
@@ -177,6 +177,7 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
   const [outputs, setOutputs] = useState<OutputFile[]>([])
   const [error, setError] = useState<{ message: string; detail?: string } | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [savedKey, setSavedKey] = useState<string | null>(null)
   const [zipping, setZipping] = useState(false)
 
   const totalSize = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files])
@@ -187,6 +188,12 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
     const timer = window.setTimeout(() => setNotice(null), 7000)
     return () => window.clearTimeout(timer)
   }, [notice])
+
+  useEffect(() => {
+    if (!savedKey) return
+    const timer = window.setTimeout(() => setSavedKey(null), 2600)
+    return () => window.clearTimeout(timer)
+  }, [savedKey])
 
   const resetResult = () => {
     setPhase('idle')
@@ -291,13 +298,27 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
     }
   }
 
+  const handleDownload = async (output: OutputFile) => {
+    setNotice(null)
+    try {
+      const result = await saveBlob(output.blob, output.name)
+      if (result !== 'cancelled') setSavedKey(output.name)
+    } catch {
+      setNotice(t('workspace.downloadError'))
+    }
+  }
+
   const handleDownloadAll = async () => {
     if (outputs.length === 0) return
     setZipping(true)
+    setNotice(null)
     try {
       const name = `${sanitizeFilename(baseName(files[0]?.name ?? 'fileforge'))}-fileforge.zip`
       const zipped = await zipOutputs(outputs, name)
-      downloadBlob(zipped.blob, zipped.name)
+      const result = await saveBlob(zipped.blob, zipped.name)
+      if (result !== 'cancelled') setSavedKey(zipped.name)
+    } catch {
+      setNotice(t('workspace.downloadError'))
     } finally {
       setZipping(false)
     }
@@ -578,11 +599,21 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
                         </div>
                         <button
                           type="button"
-                          onClick={() => downloadBlob(output.blob, output.name)}
-                          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-stone-900 px-3 text-[11px] font-bold text-white transition-colors hover:bg-stone-700 dark:bg-white dark:text-stone-900 dark:hover:bg-stone-200"
+                          onClick={() => {
+                            void handleDownload(output)
+                          }}
+                          className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-[11px] font-bold text-white transition-colors ${
+                            savedKey === output.name
+                              ? 'bg-emerald-600 hover:bg-emerald-600'
+                              : 'bg-stone-900 hover:bg-stone-700 dark:bg-white dark:text-stone-900 dark:hover:bg-stone-200'
+                          }`}
                         >
-                          <Download className="h-3.5 w-3.5" />
-                          {t('workspace.download')}
+                          {savedKey === output.name ? (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5" />
+                          )}
+                          {savedKey === output.name ? t('workspace.saved') : t('workspace.download')}
                         </button>
                       </div>
                     ))}
@@ -592,12 +623,20 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
                     {outputs.length > 1 && (
                       <button
                         type="button"
-                        onClick={handleDownloadAll}
+                        onClick={() => {
+                          void handleDownloadAll()
+                        }}
                         disabled={zipping}
                         className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-[11px] font-bold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
                       >
-                        {zipping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                        {t('workspace.downloadAll')}
+                        {zipping ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : savedKey?.endsWith('.zip') ? (
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
+                        )}
+                        {savedKey?.endsWith('.zip') ? t('workspace.saved') : t('workspace.downloadAll')}
                       </button>
                     )}
                     <button
