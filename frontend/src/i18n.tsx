@@ -79,6 +79,11 @@ const tr: Dict = {
   'workspace.outputSize': 'Sonuç: {size}',
   'workspace.processingNote': 'Büyük dosyalarda bu işlem biraz sürebilir.',
   'workspace.resultNote': 'İndirdikten sonra dosya tarayıcıda tutulmaz.',
+  'workspace.embeddedHint':
+    'Bu gömülü önizlemede indirilen dosyalar tarayıcının indirme panelinde görünür. Dosyalar doğrudan İndirilenler klasörüne kaydolmuyorsa uygulamayı Chrome veya Edge ile açın:',
+  'workspace.copyAddress': 'Adresi kopyala',
+  'workspace.copied': 'Kopyalandı',
+  'workspace.copyError': 'Adres kopyalanamadı. Adresi elle seçebilirsiniz.',
   'workspace.technicalDetails': 'Teknik detay',
   'workspace.outputCount': '{n} dosya',
   'workspace.closeNotice': 'Uyarıyı kapat',
@@ -312,6 +317,11 @@ const en: Dict = {
   'workspace.outputSize': 'Result: {size}',
   'workspace.processingNote': 'Large files may take a little longer.',
   'workspace.resultNote': 'Files are not kept in the browser after download.',
+  'workspace.embeddedHint':
+    'In this embedded preview, downloads appear in the browser download panel. If files do not land in your Downloads folder, open the app in Chrome or Edge:',
+  'workspace.copyAddress': 'Copy address',
+  'workspace.copied': 'Copied',
+  'workspace.copyError': 'Could not copy the address. You can select it manually.',
   'workspace.technicalDetails': 'Technical details',
   'workspace.outputCount': '{n} files',
   'workspace.closeNotice': 'Dismiss warning',

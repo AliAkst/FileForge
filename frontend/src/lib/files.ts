@@ -66,45 +66,13 @@ export function blobFromBytes(bytes: Uint8Array, type: string): Blob {
   return new Blob([copy.buffer], { type })
 }
 
-interface SaveFilePicker {
-  (options?: { suggestedName?: string }): Promise<{
-    createWritable: () => Promise<{
-      write: (data: Blob) => Promise<void>
-      close: () => Promise<void>
-    }>
-  }>
-}
-
-export type SaveResult = 'saved' | 'download' | 'cancelled'
-
 /**
- * Saves a blob using the File System Access API when the browser supports it,
- * so the user explicitly picks a destination. Older browsers (and embedded
- * webviews) fall back to a regular anchor download.
+ * Downloads through a normal anchor element. This is intentionally the only
+ * save path: the File System Access API (`showSaveFilePicker`) is exposed by
+ * some embedded browsers but `createWritable()` is rejected there, which
+ * creates zero-byte files. The anchor works everywhere; embedded preview
+ * browsers hand the file to their own download panel.
  */
-export async function saveBlob(blob: Blob, name: string): Promise<SaveResult> {
-  const filename = sanitizeFilename(name)
-  const picker = (window as unknown as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker
-
-  if (typeof picker === 'function') {
-    try {
-      const handle = await picker.call(window, { suggestedName: filename })
-      const writable = await handle.createWritable()
-      await writable.write(blob)
-      await writable.close()
-      return 'saved'
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return 'cancelled'
-      }
-      // Not allowed or not available here: use the standard download path.
-    }
-  }
-
-  downloadBlob(blob, filename)
-  return 'download'
-}
-
 export function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
@@ -119,6 +87,35 @@ export function downloadBlob(blob: Blob, name: string) {
   // large files to start/finish downloading.
   window.setTimeout(() => anchor.remove(), 1_000)
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
+export function isEmbeddedPreview(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return /Electron|OpenCode/i.test(navigator.userAgent)
+}
+
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    // Fall back to the legacy selection-based copy for restricted webviews.
+    const area = document.createElement('textarea')
+    area.value = text
+    area.setAttribute('readonly', '')
+    area.style.position = 'fixed'
+    area.style.opacity = '0'
+    document.body.appendChild(area)
+    area.select()
+    let copied = false
+    try {
+      copied = document.execCommand('copy')
+    } catch {
+      copied = false
+    }
+    area.remove()
+    return copied
+  }
 }
 
 export async function zipOutputs(files: OutputFile[], zipName: string): Promise<OutputFile> {

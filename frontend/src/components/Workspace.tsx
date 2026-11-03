@@ -22,11 +22,13 @@ import { useI18n } from '../i18n'
 import { isAppError } from '../lib/errors'
 import {
   baseName,
+  copyText,
+  downloadBlob,
   extensionOf,
   formatBytes,
+  isEmbeddedPreview,
   MAX_FILE_SIZE,
   sanitizeFilename,
-  saveBlob,
   zipOutputs,
   type OutputFile,
 } from '../lib/files'
@@ -178,7 +180,11 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
   const [error, setError] = useState<{ message: string; detail?: string } | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [savedKey, setSavedKey] = useState<string | null>(null)
+  const [copiedAddress, setCopiedAddress] = useState(false)
   const [zipping, setZipping] = useState(false)
+
+  const embeddedPreview = useMemo(() => isEmbeddedPreview(), [])
+  const localUrl = useMemo(() => (typeof window === 'undefined' ? '' : window.location.origin), [])
 
   const totalSize = useMemo(() => files.reduce((sum, file) => sum + file.size, 0), [files])
   const canConvert = files.length >= tool.minFiles && phase !== 'working'
@@ -194,6 +200,12 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
     const timer = window.setTimeout(() => setSavedKey(null), 2600)
     return () => window.clearTimeout(timer)
   }, [savedKey])
+
+  useEffect(() => {
+    if (!copiedAddress) return
+    const timer = window.setTimeout(() => setCopiedAddress(false), 2600)
+    return () => window.clearTimeout(timer)
+  }, [copiedAddress])
 
   const resetResult = () => {
     setPhase('idle')
@@ -298,11 +310,11 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
     }
   }
 
-  const handleDownload = async (output: OutputFile) => {
+  const handleDownload = (output: OutputFile) => {
     setNotice(null)
     try {
-      const result = await saveBlob(output.blob, output.name)
-      if (result !== 'cancelled') setSavedKey(output.name)
+      downloadBlob(output.blob, output.name)
+      setSavedKey(output.name)
     } catch {
       setNotice(t('workspace.downloadError'))
     }
@@ -315,13 +327,19 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
     try {
       const name = `${sanitizeFilename(baseName(files[0]?.name ?? 'fileforge'))}-fileforge.zip`
       const zipped = await zipOutputs(outputs, name)
-      const result = await saveBlob(zipped.blob, zipped.name)
-      if (result !== 'cancelled') setSavedKey(zipped.name)
+      downloadBlob(zipped.blob, zipped.name)
+      setSavedKey(zipped.name)
     } catch {
       setNotice(t('workspace.downloadError'))
     } finally {
       setZipping(false)
     }
+  }
+
+  const handleCopyAddress = async () => {
+    const copied = await copyText(localUrl)
+    if (copied) setCopiedAddress(true)
+    else setNotice(t('workspace.copyError'))
   }
 
   const visibleOptions = tool.options.filter((option) => isVisibleOption(option, options))
@@ -652,6 +670,31 @@ export default function Workspace({ tool, initialFiles, onClose }: WorkspaceProp
                     </button>
                     <p className="text-[10px] text-emerald-700/60 dark:text-emerald-300/60">{t('workspace.resultNote')}</p>
                   </div>
+
+                  {embeddedPreview && (
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 px-3.5 py-3 text-[11px] leading-relaxed text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p>{t('workspace.embeddedHint')}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <code className="rounded-md bg-white/70 px-2 py-1 font-mono text-[10px] text-amber-900 dark:bg-black/20 dark:text-amber-100">
+                              {localUrl}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void handleCopyAddress()
+                              }}
+                              className="inline-flex h-7 items-center gap-1 rounded-md border border-amber-300/70 bg-white/70 px-2 text-[10px] font-bold text-amber-900 transition-colors hover:bg-white dark:border-amber-500/30 dark:bg-white/10 dark:text-amber-100 dark:hover:bg-white/20"
+                            >
+                              {copiedAddress ? t('workspace.copied') : t('workspace.copyAddress')}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="animate-fade-up rounded-2xl border border-red-200 bg-red-50/70 p-4 sm:p-5 dark:border-red-500/20 dark:bg-red-500/[0.07]">
