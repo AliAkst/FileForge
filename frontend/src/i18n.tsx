@@ -104,6 +104,9 @@ const tr: Dict = {
   'opt.pageRange.help': 'Boş bırakırsanız tüm sayfalar işlenir.',
   'opt.detectHeadings': 'Başlıkları algıla',
   'opt.detectHeadings.help': 'Büyük yazıları Word başlığı olarak işaretle.',
+  'opt.preserveLayout': 'Görünümü koru',
+  'opt.preserveLayout.help':
+    'Metni PDF’deki konumlarına yerleştirir; sayfa düzeni korunur. Fotoğraf, çizgi ve renkler taşınmaz.',
   'opt.pageSize': 'Sayfa boyutu',
   'opt.pageSize.auto': 'Görsele göre',
   'opt.pageSize.a4': 'A4',
@@ -342,6 +345,9 @@ const en: Dict = {
   'opt.pageRange.help': 'Leave empty to process every page.',
   'opt.detectHeadings': 'Detect headings',
   'opt.detectHeadings.help': 'Mark larger text as Word headings.',
+  'opt.preserveLayout': 'Keep layout',
+  'opt.preserveLayout.help':
+    'Places text where it was in the PDF so the page layout is preserved. Photos, rules and colors are not carried over.',
   'opt.pageSize': 'Page size',
   'opt.pageSize.auto': 'Fit to image',
   'opt.pageSize.a4': 'A4',

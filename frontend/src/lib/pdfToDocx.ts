@@ -1,7 +1,11 @@
 import {
   AlignmentType,
   Document,
+  FrameAnchorType,
+  FrameWrap,
   HeadingLevel,
+  HeightRule,
+  LineRuleType,
   Packer,
   PageBreak,
   Paragraph,
@@ -16,6 +20,19 @@ interface Block {
   fontSize: number
   heading: 1 | 2 | 3 | null
   bullet: boolean
+}
+
+interface Segment {
+  text: string
+  x: number
+  width: number
+  fontSize: number
+}
+
+const POINTS_TO_TWIPS = 20
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
 }
 
 function weightedMedianSize(pages: PageText[]): number {
@@ -163,9 +180,120 @@ function paragraphForBlock(block: Block, bodySize: number): Paragraph {
   })
 }
 
+/**
+ * PDF lines can contain several visually separate runs (for example a job
+ * title on the left and its date on the right). Splitting them at large gaps
+ * keeps those columns apart instead of collapsing them into one long line.
+ */
+function segmentsForLine(line: TextLine): Segment[] {
+  const spans = [...line.spans].sort((a, b) => a.x - b.x)
+  const segments: Segment[] = []
+  let current: { text: string; x: number; endX: number; fontSize: number } | null = null
+
+  const flush = () => {
+    if (!current) return
+    const text = current.text.replace(/\s+/g, ' ').trim()
+    if (text) {
+      segments.push({
+        text,
+        x: current.x,
+        width: Math.max(1, current.endX - current.x),
+        fontSize: current.fontSize,
+      })
+    }
+    current = null
+  }
+
+  for (const span of spans) {
+    if (!span.str) continue
+    if (!current) {
+      current = { text: span.str, x: span.x, endX: span.x + span.width, fontSize: span.fontSize }
+      continue
+    }
+    const gap = span.x - current.endX
+    const size = Math.min(current.fontSize, span.fontSize)
+    if (gap > Math.max(9, size * 0.9)) {
+      flush()
+      current = { text: span.str, x: span.x, endX: span.x + span.width, fontSize: span.fontSize }
+      continue
+    }
+    const needsSpace =
+      gap > Math.max(1.2, size * 0.16) &&
+      !current.text.endsWith(' ') &&
+      !span.str.startsWith(' ')
+    current.text += needsSpace ? ` ${span.str}` : span.str
+    current.endX = Math.max(current.endX, span.x + span.width)
+    current.fontSize = Math.max(current.fontSize, span.fontSize)
+  }
+
+  flush()
+  return segments
+}
+
+function isShouty(text: string): boolean {
+  const letters = text.replace(/[^A-Za-zÇĞİÖŞÜçğıöşü]/g, '')
+  if (letters.length < 4) return false
+  const upper = letters.replace(/[^A-ZÇĞİÖŞÜ]/g, '').length
+  return upper / letters.length > 0.85
+}
+
+/**
+ * Places every text segment at its original PDF coordinates using absolutely
+ * positioned Word frames. The page keeps the source page size, so the result
+ * looks like the PDF while the text stays editable. Photos, vector rules and
+ * colors are not recreated by this mode.
+ */
+function layoutParagraphs(page: PageText, bodySize: number): Paragraph[] {
+  const paragraphs: Paragraph[] = []
+
+  for (const line of page.lines) {
+    for (const segment of segmentsForLine(line)) {
+      const size = clamp(segment.fontSize, 4, 96)
+      const baselineFromTop = page.height - line.y
+      const top = baselineFromTop - size * 0.8
+      const available = Math.max(segment.width + 2, page.width - segment.x - 4)
+      const width = Math.min(available, segment.width * 1.22 + 10)
+      const bold = size >= bodySize * 1.06 || (isShouty(segment.text) && segment.text.length <= 60)
+
+      paragraphs.push(
+        new Paragraph({
+          frame: {
+            type: 'absolute',
+            position: {
+              x: Math.round(Math.max(0, segment.x) * POINTS_TO_TWIPS),
+              y: Math.round(Math.max(0, top) * POINTS_TO_TWIPS),
+            },
+            width: Math.round(width * POINTS_TO_TWIPS),
+            height: Math.round(size * 1.4 * POINTS_TO_TWIPS),
+            anchor: {
+              horizontal: FrameAnchorType.PAGE,
+              vertical: FrameAnchorType.PAGE,
+            },
+            wrap: FrameWrap.NONE,
+            rule: HeightRule.ATLEAST,
+          },
+          spacing: { before: 0, after: 0, line: Math.round(size * 1.2 * POINTS_TO_TWIPS), lineRule: LineRuleType.AT_LEAST },
+          children: [
+            new TextRun({
+              text: segment.text,
+              size: Math.round(size * 2),
+              bold,
+              font: 'Arial',
+              color: '111111',
+            }),
+          ],
+        }),
+      )
+    }
+  }
+
+  return paragraphs
+}
+
 export interface PdfToDocxOptions {
   pageSpec?: string
   detectHeadings?: boolean
+  preserveLayout?: boolean
   onProgress?: (percent: number) => void
 }
 
@@ -179,16 +307,30 @@ export async function pdfToDocx(file: File, options: PdfToDocxOptions = {}): Pro
   }
 
   const bodySize = weightedMedianSize(pages)
+  const preserveLayout = options.preserveLayout ?? true
   const children: Paragraph[] = []
+  const firstPage = pages[0]
+  const horizontalTwips = Math.round(firstPage.width * POINTS_TO_TWIPS)
+  const verticalTwips = Math.round(firstPage.height * POINTS_TO_TWIPS)
 
   pages.forEach((page, pageIndex) => {
     if (pageIndex > 0) {
-      children.push(new Paragraph({ children: [new PageBreak()] }))
+      children.push(
+        new Paragraph({
+          spacing: { before: 0, after: 0 },
+          children: [new PageBreak()],
+        }),
+      )
     }
-    const blocks = blocksForPage(page, bodySize, options.detectHeadings ?? true)
-    blocks.forEach((block) => {
-      children.push(paragraphForBlock(block, bodySize))
-    })
+
+    if (preserveLayout) {
+      children.push(...layoutParagraphs(page, bodySize))
+    } else {
+      const blocks = blocksForPage(page, bodySize, options.detectHeadings ?? true)
+      blocks.forEach((block) => {
+        children.push(paragraphForBlock(block, bodySize))
+      })
+    }
     options.onProgress?.(72 + Math.round(((pageIndex + 1) / pages.length) * 22))
   })
 
@@ -199,8 +341,8 @@ export async function pdfToDocx(file: File, options: PdfToDocxOptions = {}): Pro
     styles: {
       default: {
         document: {
-          run: { font: 'Calibri', size: 22, color: '1C1917' },
-          paragraph: { spacing: { line: 300 } },
+          run: { font: preserveLayout ? 'Arial' : 'Calibri', size: 22, color: '1C1917' },
+          paragraph: { spacing: preserveLayout ? { before: 0, after: 0, line: 240 } : { line: 300 } },
         },
       },
     },
@@ -208,7 +350,10 @@ export async function pdfToDocx(file: File, options: PdfToDocxOptions = {}): Pro
       {
         properties: {
           page: {
-            margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 },
+            size: preserveLayout ? { width: horizontalTwips, height: verticalTwips } : undefined,
+            margin: preserveLayout
+              ? { top: 0, right: 0, bottom: 0, left: 0 }
+              : { top: 1134, right: 1134, bottom: 1134, left: 1134 },
           },
         },
         children,

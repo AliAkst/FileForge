@@ -47,11 +47,19 @@ export const tools: ToolDef[] = [
     options: [
       pageRangeOption,
       {
+        id: 'preserveLayout',
+        type: 'toggle',
+        labelKey: 'opt.preserveLayout',
+        helpKey: 'opt.preserveLayout.help',
+        defaultValue: true,
+      },
+      {
         id: 'detectHeadings',
         type: 'toggle',
         labelKey: 'opt.detectHeadings',
         helpKey: 'opt.detectHeadings.help',
         defaultValue: true,
+        showWhen: { id: 'preserveLayout', equals: false },
       },
     ],
   },

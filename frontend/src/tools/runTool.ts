@@ -41,6 +41,7 @@ export async function runTool(
       const { pdfToDocx } = await import('../lib/pdfToDocx')
       const blob = await pdfToDocx(first, {
         pageSpec,
+        preserveLayout: flag(options, 'preserveLayout', true),
         detectHeadings: flag(options, 'detectHeadings', true),
         onProgress,
       })
