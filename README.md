@@ -11,6 +11,8 @@ açık/koyu tema ve sürükle-bırak dosya yükleme sunar.
 > Dosyalarınız cihazınızdan çıkmaz. Uygulama tamamen istemci tarafında çalışır;
 > hiçbir dosya bir sunucuya yüklenmez, kaydedilmez veya üçüncü taraflarla paylaşılmaz.
 
+![FileForge ana ekran](docs/screenshot.png)
+
 ## Araçlar
 
 | Kategori | Araçlar |
@@ -32,7 +34,25 @@ açık/koyu tema ve sürükle-bırak dosya yükleme sunar.
 - **Türkçe / İngilizce:** Tek tıkla dil değişimi, tercih `localStorage`'da saklanır.
 - **Karanlık mod:** Sistem tercihine saygı duyar, kullanıcı seçimini hatırlar.
 
-## Başlangıç
+## İndirip çalıştırma (Windows)
+
+Başka bir bilgisayarda kullanmak için GitHub sayfasındaki **Code → Download ZIP**
+ile projeyi indirin, ZIP dosyasını bir klasöre çıkarın ve klasördeki
+**`setup.cmd`** dosyasına çift tıklayın. Kurulum betiği:
+
+1. Node.js 18+ kurulu mu diye kontrol eder (değilse [nodejs.org](https://nodejs.org) adresini gösterir),
+2. `frontend` bağımlılıklarını kurar,
+3. üretim derlemesini oluşturur,
+4. masaüstüne **FileForge** kısayolunu ekler.
+
+Kurulum bittikten sonra masaüstündeki **FileForge** simgesine çift tıklamanız
+yeterlidir. Uygulama tarayıcıda ayrı bir pencerede açılır ve pencere kapanınca
+arka plandaki yerel sunucu da kapanır.
+
+> Node.js kurulu değilse `setup.cmd` sizi uyarır. Node.js'i kurduktan sonra
+> `setup.cmd` dosyasını yeniden çalıştırmanız gerekir.
+
+### Geliştirme
 
 Gereksinimler: Node.js 18+ ve npm.
 
@@ -141,5 +161,6 @@ launcher/             # Windows kısayol başlatıcısı ve uygulama ikonu
 
 ## Lisans
 
-Bu proje eğitim/demo amaçlı geliştirilmiştir. Kullanılan açık kaynak
-kütüphanelerin lisansları kendi paketlerinde belirtilmiştir.
+Bu proje **MIT Lisansı** ile açık kaynak olarak yayınlanmıştır. Ayrıntılar için
+[`LICENSE`](LICENSE) dosyasına bakın. Kullanılan açık kaynak kütüphanelerin
+lisansları kendi paketlerinde belirtilmiştir.
