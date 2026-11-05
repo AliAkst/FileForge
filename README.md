@@ -1,5 +1,7 @@
 # FileForge
 
+[![CI](https://github.com/AliAkst/FileForge/actions/workflows/ci.yml/badge.svg)](https://github.com/AliAkst/FileForge/actions/workflows/ci.yml)
+
 **Dosyalarınızı saniyeler içinde dönüştürün — tamamen tarayıcınızda.**
 
 FileForge, dosya dönüştürme işlemlerini sunucuya hiçbir şey yüklemeden, doğrudan
@@ -36,9 +38,11 @@ açık/koyu tema ve sürükle-bırak dosya yükleme sunar.
 
 ## İndirip çalıştırma (Windows)
 
-Başka bir bilgisayarda kullanmak için GitHub sayfasındaki **Code → Download ZIP**
-ile projeyi indirin, ZIP dosyasını bir klasöre çıkarın ve klasördeki
-**`setup.cmd`** dosyasına çift tıklayın. Kurulum betiği:
+Başka bir bilgisayarda kullanmak için
+**[FileForge-main.zip](https://github.com/AliAkst/FileForge/archive/refs/heads/main.zip)**
+dosyasını indirin (veya GitHub sayfasında **Code → Download ZIP**), ZIP dosyasını
+bir klasöre çıkarın ve klasördeki **`setup.cmd`** dosyasına çift tıklayın.
+Kurulum betiği:
 
 1. Node.js 18+ kurulu mu diye kontrol eder (değilse [nodejs.org](https://nodejs.org) adresini gösterir),
 2. `frontend` bağımlılıklarını kurar,
